@@ -1,0 +1,15 @@
+=== DC-MOTOR-DRIVE-4 CIRCUIT EXPLANATION
+
+The circuit uses 7805 for a stabilized 5v dc supply with a ripple smoothening capacitor C1. input to the circuit is 12v dc. A power ON indicator led D1 is used with a current limiting resostor R1.
+
+The circuit has two logic inputs marked as RUN and DIRECTION. A dc motor rated at 5v is connected using two 12volt relays for direction change and anoter relay is used to supply power to the motor.
+
+When the DIR relay (k1 12v) is ON power supply (5v) goes to the DC motor where the direction is in one way.
+
+When the DIR relay and relays K2 K3 are energised the motor runs in the other way because of the connection change in polarity.
+
+If only the DIR relay is energised - the motor does not rotate because the supply is cut off by realy K1. Relay energizing indicator is also provided through an LED & back emf diodes (1N4148) are placed across relay coils.
+
+As shown in schematic two logic input connectors are provided through two way cables into the PCB . Two non inverting buffers ic4050 are used with pull down resistors (100k) to keep the logic low.
+
+When testing without the sensors two test switches are also provided to simulate the input action , the output of 4050 is used to bias the transistors. No bias resistor is used, since the ic4050 has built in 330 ohms resistors as per CMOS logic gate standards.

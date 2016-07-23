@@ -1,0 +1,32 @@
+=== STEERING-4 CIRCUIT EXPLANATION
+
+The circuit uses 7805 for a stabilized 5v dc supply with a ripple smoothening capacitor C1. input to the circuit is 12v dc. A power ON indicator led D1 is used with a current limiting resostor R1.
+
+The steering mechanism has a built in dc motor rated at 5v, which consumes approximately 100mA current. When the motor is rotated in one direction for one second the steering mechanism moves 2 wheels in one angle.
+
+If the polarity is reversed to the motor the wheels move in other direction. The motor has a gear/ clutch mechanism built in. so, even if the power is given for greater than one second the clutch slips & does damage the motor.
+
+To operate this dc motor we require 2 SPDT relays,
+which can supply power of either polarity of dc motor. When any one of them
+is energized see (relay k1 & k2) (in schematic) R3 & D4 (bicolor LED) one
+placed across the motor to indicate red/ green to show the clockwise/
+anticlockwise rotation. Since the 2 relays provide opposite polarity
+voltage to the steering motor only one relay at a time should be
+energized. When both the relays are ON or OFF, no power is supplied
+to the motor.
+
+Relay energizing indicator is also provided through an LED & back emf
+diodes (1N4148) are placed across relay coils.
+
+As shown in schematic , left & right logic input connectors are used
+which can be connected through two way cables into the PCB . Two non
+inverting buffers ic4050 are used with pull down resistors (100k) to
+keep the logic low.
+
+When testing without the sensors two test switches are also provided
+to simulate the sensor action , the output of 4050 is used to
+bias the transistors. No bias resistor is used, since the ic4050 has built
+in 330 ohms resistors as per CMOS logic gate standards.
+
+END
+

@@ -1,0 +1,115 @@
+
+    /* COMPILED IN SDCC - NO PROBLEM */  
+    /* WRITTEN ON 16-02-2005 */  
+    
+    typedef unsigned char BYTE;  
+    typedef unsigned short WORD;  
+    typedef unsigned long DWORD;  
+    #include  
+    void delay (void);  
+    WORD data dtmfcode,i;  
+    void delay() /* delay time 1sec appr */  
+    {  
+    i=0x80ff;  
+    while(--i);  
+    } /* end of delay */  
+    void main() /* start of main */  
+    {  
+    P1=0; /* ports intilisation */  
+    P0=0;  
+    P2=0;  
+    P3=0;  
+    P2=255; /* make port green high */  
+    Begin: /* start of begin subroutine */  
+    if(P2_4==0) /* if ready signal of 8870 is true, goto subroutine begin1 */   
+    {  
+    goto Begin1;  
+    }  
+    else /* if ready signal of 8870 isnit high, goto subroutine begin */   
+    {  
+    goto Begin;   
+    }  
+    Begin1:  
+    dtmfcode=P2; /* receives data from 8870 decoder */  
+    dtmfcode=255-dtmfcode; /* bits have come inverted so reinvert it */  
+    dtmfcode=dtmfcode & 00001111; /* mask of unwanted bits */  
+    P1=dtmfcode;  
+    if(dtmfcode==2)  
+    {  
+    goto key2;  
+    }  
+    else if(dtmfcode==8)  
+    {  
+    goto key8;  
+    }  
+    else if(dtmfcode==4)  
+    {  
+    goto key4;  
+    }  
+    else if(dtmfcode==6)  
+    {  
+    goto key6;  
+    }  
+    else if(dtmfcode==5)  
+    {  
+    goto key5;  
+    }  
+    goto Begin;  
+    key1: /* if key 1 is pressed do nothing */  
+    {  
+    }  
+    key2: /* if key 2 is pressed,move in forward direction */  
+    {  
+    P0_0=1;  
+    P0_1=0;  
+    }  
+    key3: /* if key 3 is pressed do nothing */  
+    {  
+    }  
+    key4: /* if key 4 is pressed,turn steering towards left */  
+    {  
+    P0_2=1;  
+    delay();  
+    P0_2=0;  
+    }  
+    key5: /* if key 5 is pressed, stop all */   
+    {  
+    P0_0=0;  
+    P0_1=0;  
+    }  
+    key6: /* if key 6 is pressed,turn steering towards right */  
+    {  
+    P0_3=1;  
+    delay();  
+    P0_3=0;  
+    }  
+    key7: /* if key 7 is pressed do nothing */  
+    {  
+    }  
+    key8: /* if key 8 is pressed,move in reverse direction */  
+    {  
+    P0_0=1;  
+    P0_1=1;  
+    }  
+    key9: /* if key 9 is pressed do nothing */  
+    {  
+    }  
+    key10: /* if key 0 is pressed,wait for 1 sec */   
+    {  
+    P0_4=1;  
+    delay();  
+    P0_4=0;  
+    }  
+    key11: /* if key 0 is pressed,wait for 1 sec */  
+    {  
+    P0_5=1;  
+    delay();  
+    P0_5=0;  
+    }  
+    key12: /* if key 0 is pressed,wait for 1 sec */  
+    {  
+    P0_6=1;  
+    delay();  
+    P0_6=0;  
+    }  
+    } /* end of main */  
