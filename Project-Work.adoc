@@ -667,11 +667,483 @@ Port 1 is an 8-bit bi-directional I/O port with internal pull-ups. The Port 1 ou
 Furthermore, P1.4, P1.5, P1.6, and P1.7 can be configured as the SPI slave port select, data input/output and shift clock input/output pins as shown in the following table.
 
 
-PAGE 49 : Table
+|====
+| **PORT PIN** | **ALTERNATE FUNCTIONS**
+| P1.0 | T2 (external count input to Timer/Counter 2), clock-out
+| P1.1 | T2EX (Timer/Counter 2 capture/reload trigger and direction control)
+| P1.4 | SS (Slave port select input)
+| P1.5 | MOSI (Master data output, slave data input pin for SPI channel)
+| P1.6 | MISO (Master data input, slave data output pin for SPI channel)
+| P1.7 | SCK (Master clock output, slave clock input pin for SPI channel)
+|====
+
+Port 1 also receives the low-order address bytes during Flash programming and verification.
+
+**PORT 2**
+
+Port 2 is an 8-bit bi-directional I/O port with internal pull-ups. The Port 2 output buffers can sink/source four TTL inputs. When 1s are written to Port 2 pins, they are pulled high by the internal pull-ups and can be used as inputs. As inputs, Port 2 pins that are externally being pulled low will source current (IIL) because of the internal pull-ups. Port 2 emits the high-order address byte during fetches from external program memory and during accesses to external data memory that uses 16-bit addresses (MOVX @ DPTR). In this application, Port 2 uses strong internal pull-ups when emitting 1s. During accesses to external data memory that uses 8-bit addresses (MOVX @ RI), Port 2 emits the contents of the P2 Special Function Register. Port 2 also receives the high-order address bits and some control signals during Flash programming and verification.
+
+**PORT 3**
+
+Port 3 is an 8 bit bi-directional I/O port with internal pull-ups. The Port 3 output buffers can sink/source four TTL inputs. When 1s are written to Port 3 pins, they are pulled high by the internal pull-ups and can be used as inputs. As inputs, Port 3 pins that are externally being pulled low will source current (IIL) because of the pull-ups. Port 3 also serves the functions of various special features of the AT89S8252, as shown in the following table. Port 3 also receives some control signals for Flash programming and verification.
+
+|====
+| **PORT PIN** | **ALTERNATE FUNCTIONS**
+| P3.0 | RXD (serial input port)
+| P3.1 | TXD (serial output port)
+| P3.2 | INT0 (external interrupt 0)
+| P3.3 | INT1 (external interrupt 1)
+| P3.4 | T0 (timer 0 external input)
+| P3.5 | T1 (timer 1 external input)
+| P3.6 | WR (external data memory write strobe)
+| P3.7 | RD (external data memory read strobe)
+|====
+
+**RST**
+Reset input. A high on this pin for two machine cycles while the oscillator is running resets the device.
+
+**ALE/PROG**
+Address Latch Enable is an output pulse for latching the low byte of the address during accesses to external memory. This pin is also the program pulse input (PROG) during Flash programming.
+
+In normal operation, ALE is emitted at a constant rate of 1/6 the oscillator frequency and may be used for external timing or clocking purposes. Note, however, that one ALE pulse is skipped during each access to external data memory. If desired, ALE operation can be disabled by setting bit 0 of SFR location 8EH. With the bit set, ALE is active only during a MOVX or MOVC instruction. Otherwise, the pin is weakly pulled high. Setting the ALE-disable bit has no effect if the microcontroller is in external execution mode.
+
+**PSEN**
+Program Store Enable is the read strobe to external program memory. When the AT89S8252 is executing code from external program memory, PSEN is activated twice each machine cycle, except that two PSEN activations are skipped during each access to external data memory.
+
+**EA/VPP**
+
+**External Access Enable**. EA must be strapped to GND in order to enable the device to fetch code from external program memory locations starting at 0000H up to FFFFH. Note, however, that if lock bit 1 is programmed, EA will be internally latched on reset. EA should be strapped to VCC for internal program executions. This pin also receives the 12-volt programming enable voltage (VPP) during Flash programming when 12 volt programming is selected.
+
+**XTAL1** Input to the inverting oscillator amplifier and to the internal clock circuit.
+
+**XTAL2** Output from the inverting oscillator amplifier.
+
+==== DATA MEMORY – EEPROM AND RAM
+The AT89S8252 implements 2K bytes of on-chip EEPROM for data storage and 256 bytes of RAM. The upper 128 bytes of RAM occupy a parallel space to the Special Function Registers. That means the upper 128 bytes have the same addresses as the SFR space but are physically separate from SFR space. When an instruction accesses an internal location above address 7FH, the address mode used in the instruction specifies whether the CPU accesses the upper 128 bytes of RAM or the SFR space.
+
+Instructions that use direct addressing access SFR space. For example, the following direct addressing instruction accesses the SFR at location 0A0H (which is P2).MOV 0A0H, #data Instructions that use indirect addressing access the upper 128 bytes of RAM. For example, the following indirect addressing instruction, where R0 contains 0A0H, accesses the data byte at address 0A0H, rather than P2 (whose address is 0A0H).
+
+Ex: MOV @R0, #data
+
+Note that stack operations are examples of indirect addressing, so the upper 128 bytes of data RAM are available as stack space. The on-chip EEPROM data memory is selected by setting the EEMEN bit in the WMCON register at SFR address location 96H. The EEPROM address range is from 000H to 7FFH. The MOVX instructions are used to access the EEPROM. To access off-chip data memory with the MOVX instructions, the EEMEN bit needs to be set to **"0"**.
+
+The EEMWE bit in the WMCON register needs to be set to “1” before any byte location in the EEPROM can be written. User software should reset EEMWE bit to “0” if no further EEPROM write is required. EEPROM write cycles in the serial programming mode are self-timed and typically take 2.5 ms. The progress of EEPROM write can be monitored by reading the RDY/BSY bit (read-only) in SFR WMCON.
+
+**RDY/BSY = 0 means programming is still in progress and**
+
+**RDY/BSY = 1 means EEPROM write cycle is completed and another write cycle can be initiated.**
+
+In addition, during EEPROM programming, an attempted read from the EEPROM will fetch the byte being written with the MSB complemented. Once the write cycle is completed, true data are valid at all bit locations.
+
+**PROGRAMMABLE WATCHDOG TIMER**
+
+The programmable Watchdog Timer (WDT) operates from an independent oscillator. The pre scaled bits, PS0, PS1 and PS2 in SFR WMCON are used to set the period of the Watchdog Timer from 16 ms to 2048 ms. The available timer periods are shown in the following table and the actual timer periods (at VCC = 5V) are within ±30% of the nominal. The WDT is disabled by Power-on Reset and during Power-down. It is enabled by setting the WDTEN bit in SFR WMCON (address = 96H). The WDT is reset by setting the WDTRST bit in WMCON. When the WDT times out without being reset or disabled, an internal RST pulse is generated to reset the CPU.
+
+**TIMER 0 AND 1**
+
+Timer 0 and Timer 1 in the AT89S8252 operate the same way as Timer 0 and Timer 1 in the AT89C51, AT89C52 and AT89C55
+
+**TIMER 2**
+
+Timer 2 is a 16 bit Timer/Counter that can operate as either a timer or an event counter. The type of operation is selected by bit C/T2 in the SFR T2CON. Timer 2 has three operating modes: capture, auto-reload (up or down counting), and baud rate generator. The modes are selected by bits in T2CON, as shown in Table 8. Timer 2 consists of two 8-bit registers, TH2 and TL2. In the Timer function, the TL2 register is incremented every machine cycle. Since a machine cycle consists of 12 oscillator periods, the count rate is 1/12 of the oscillator frequency.
+
+In the Counter function, the register is incremented in response to a 1-to-0 transition at its corresponding external input pin, T2. In this function, the external input is sampled during S5P2 of every machine cycle. When the samples show a high in one cycle and a low in the next cycle, the count is incremented. The new count value appears in the register during S3P1 of the cycle following the one in which the transition was detected. Since two machine cycles (24 oscillator periods) are required to recognize a 1-to-0 transition, the maximum count rate is 1/24 of the oscillator frequency. To ensure that a given level is sampled at least once before it changes, the level should be held for at least one full machine cycle.
+
+**SERIAL PERIPHERAL INTERFACE**
+
+The serial peripheral interface (SPI) allows high-speed synchronous data transfer between the AT89S8252 and peripheral devices or between several AT89S8252 devices. The AT89S8252 SPI features include the following:
+
+. Full-Duplex, 3-Wire Synchronous Data Transfer
+. Master or Slave Operation
+. 1.5 MHz Bit Frequency (max.)
+. LSB First or MSB First Data Transfer
+. Four Programmable Bit Rates
+. End of Transmission Interrupt Flag
+. Write Collision Flag Protection
+. Wakeup from Idle Mode (Slave Mode Only)
+
+The interconnection between master and slave CPUs with SPI is shown in the following figure.
+
+image::images/Image-230716-082628.930.png[]
+
+The SCK pin is the clock output in the master mode but is the clock input in the slave mode. Writing to the SPI data register of the master CPU starts the SPI clock generator, and the data written shifts out of the MOSI pin and into the MOSI pin of the slave CPU. After shifting one byte, the SPI clock generator stops, setting the end of transmission flag (SPIF). If both the SPI interrupt enable bit (SPIE) and the serial port interrupt enable bit (ES) are set, an interrupt is requested. The Slave Select input, SS/P1.4, is set low to select an individual SPI device as a slave. When SS/P1.4 is set high, the SPI port is deactivated and the MOSI/P1.5 pin can be used as an input. There are four combinations of SCK phase and polarity with respect to serial data, which are determined by control bits CPHA and CPOL.
+
+**INTERRUPTS**
+
+The AT89S8252 has a total of six interrupt vectors: two external interrupts (INT0 and INT1), three timer interrupts (Timers 0, 1, and 2), and the serial port interrupt. These interrupts are all shown in Figure 10. Each of these interrupt sources can be individually enabled or disabled by setting or clearing a bit in Special Function Register IE. IE also contains a global disable bit, EA, which disables all interrupts at once. Note that Table 10 shows that bit position IE.6 is unimplemented. In the AT89C51, bit position IE.5 is also unimplemented. User software should not write 1s to these bit positions, since they may be used in future AT89products. Timer 2 interrupt is generated by the logical OR of bits TF2 and EXF2 in register T2CON.
+
+Neither of these flags is cleared by hardware when the service routine is vectored to. In fact, the service routine may have to determine whether it was TF2 or EXF2 that generated the interrupt, and that bit will have to be cleared in software. The Timer 0 and Timer 1 flags, TF0 and TF1, are set at S5P2 of the cycle in which the timers overflow. The values are then polled by the circuitry in the next cycle. However, the Timer 2 flag, TF2, is set at S2P2 and is polled in the same cycle in which the timer overflows.
+
+**OSCILLATOR CHARACTERISTICS**
+
+XTAL1 and XTAL2 are the input and output, respectively, of an inverting amplifier that can be configured for use as an on-chip oscillator, as shown in Figure 11. Either quartz crystal or ceramic resonator may be used. To drive the device from an external clock source, XTAL2 should be left unconnected while XTAL1 is driven. There are no requirements on the duty cycle of the external clock signal, since the input to the internal clocking circuitry is through a divide-by-two flip-flop, but minimum & maximum voltage, high and low time specifications must be observed.
+
+image::images/Image-230716-082813.921.png[]
+
+==== IDLE MODE
+In idle mode, the CPU puts itself to sleep while all the on-chip peripherals remain active. The mode is invoked by software. The content of the on-chip RAM and the entire special functions registers remain unchanged during this mode. The idle mode can be terminated by any enabled Interrupt or by hardware reset. It should be noted that when idle is terminated by a hard were reset, the device normally resumes program execution, from where it left off, up to two machine cycles before the internal reset algorithm takes control. On-chip hardware inhibits access to internal RAM in this event, but access to the port pins is not inhibited. To eliminate the possibility of an unexpected write to a port pin when Idle is terminated by reset, the instruction following the one that invokes Idle should not be one that writes to a port pin or to external memory
+
+image::images/Image-230716-082947.675.png[]
+
+==== STATUS OF EXTERNAL PINS DURING IDLE AND POWER-DOWN MODES
+|====
+| **MODE** | **PROGRAM MEMORY** | **ALE** | **PSEN** | **PORT0** | **PORT1** | **PORT2** | **PORT3**
+| Idle | Internal | 1 | 1 | Data | Data | Data | Data
+| Idle | External | 1 | 1 | Float | Data | Address | Data
+| Power-down | Internal | 0 | 0 | Data | Data | Data | Data
+| Power-down | External | 0 | 0 | float | Data | Data | Data
+|====
+
+==== POWER-DOWN MODE
+In the power-down mode, the oscillator is stopped, and the instruction that invokes power-down is the last instruction executed. The on-chip RAM and Special Function Registers retain their values until the power-down mode is terminated. The only exit from power-down is a hardware reset. Reset redefines the SFRs but does not change the on-chip RAM. The reset should not be activated before VCC is restored to its normal operating level and must be held active long enough to allow the oscillator to restart and stabilize.
+
+==== DC MOTOR – AN OVERVIEW
+The DC motor has two basic parts: the rotating part that is called the _armature_ and the stationary part that includes coils of wire called the _field coils_. The stationary part is also called the _stator_.  The armature is made of coils of wire wrapped around the core, and the core has an extended shaft that rotates on bearings. The ends of each coil of wire on the armature are terminated at one end of the armature. The termination points are called the _commutator_, and this is where the brushes make electrical contact to bring electrical current from the stationary part to the rotating part of the machine.
+
+image::images/Image-230716-084437.149.png[]
+
+The coils are mounted inside the stator. These coils are referred to as field coils and they may be connected in series or parallel with each other to create changes of torque in the motor. The size of wire in these coils and the number of turns of wire in the coil will depend on the effect that is trying to be achieved. The armature of a DC motor has coils of wire wrapped around its core. The ends of each coil are terminated at commutator segments located on the left end of the shaft. The brushes make contact on the commutator to provide current for the armature.
+
+**FIELD COILS**
+image::images/Image-230716-084502.819.png[]
 
 
+**Armature of a DC motor**
+image::images/Image-230716-084526.715.png[]
+
+==== Magnetic Diagram of a DC Motor
+In below figure it is seen that a bar magnet has been mounted on a shaft so that it can spin. The field winding is one long coil of wire that has been separated into two sections. The top section is connected to the positive pole of the battery and the bottom section is connected to the negative pole of the battery. It is important to understand that the battery represents a source of voltage for this winding. In the actual industrial-type motor this voltage will come from the DC voltage source for the motor. The current flow in this direction makes the top coil the north pole of the magnet and the bottom coil the south pole of the magnet.
+
+image::images/Image-230716-084606.270.png[]
+
+**(a) Magnetic diagram that explains the operation of a DC motor. The rotating magnet moves clockwise because like poles repel.
+(b) The rotating magnet is being attracted because the poles are unlike. 
+(c) The rotating magnet is now shown as the armature coil, and its polarity is determined by the brushes and commutator segments.**
+
+The bar magnet represents the armature and the coil of wire represents the field. The arrow shows the direction of the armature's rotation. The arrow shows the armature starting to rotate in the clockwise direction. The north pole of the field coil is repelling the north pole of the armature, and the south pole of the field coil is repelling the south pole of the armature.
+
+As the armature begins to move, the north pole of the armature comes closer to the south pole of the field, and the south pole of the armature is coming closer to the north pole of the field. As the two unlike poles near each other, they begin to attract. This attraction becomes stronger until the armature's north-pole moves directly in line with the field's south-pole, and its south-pole moves directly in line with the field's north-pole (Fig. 12b).
+
+When the opposite poles are at their strongest attraction, the armature will be "locked up" and will resist further attempts to continue spinning. For the armature to continue its rotation, the armature's polarity must be switched. Since the armature in this diagram is a permanent magnet, it would lock up during the first rotation and not work. If the armature is an electromagnet, its polarity can be changed by changing the direction of current flow through it. For this reason the armature must be changed to a coil (electromagnet) and a set of commutator segments must be added to provide a means of making contact between the rotating member and the stationary member. One commutator segment is provided for each terminal of the magnetic coil. Since this armature has only one coil, it will have only two terminals, so the commutator has two segments.
+
+Since the armature is now a coil of wire, it will need DC current flowing through it to become magnetized. This presents another problem; since the armature will be rotating, the DC voltage wires cannot be connected directly to the armature coil. A stationary set of carbon brushes is used to make contact to the rotating armature. The brushes ride on the commutator segments to make contact so that current will flow through the armature coil.
+
+In Fig. 12c it is seen that the DC voltage is applied to the field and to the brushes. Since negative DC voltage is connected to one of the brushes, the commutator segment the negative brush rides on will also be negative. The armature's magnetic field causes the armature to begin to rotate. This time when the armature gets to the point where it becomes locked up with the magnetic field, the negative brush begins to touch the end of the armature coil that was previously positive and the positive brush begins to touch the end of the armature coil that was negative. This action switches the direction of current flow through the armature, which also switches the polarity of the armature coil's magnetic field at just the right time so that the repelling and attracting continues. The armature continues to switch its magnetic polarity twice during each rotation, which causes it to continually be attracted and repelled with the field poles.
+
+This is a simple two-pole motor that is used primarily for instructional purposes. Since the motor has only two poles, the motor will operate rather roughly and not provide too much torque. Additional field poles and armature poles must be added to the motor for it to become useful for industry.
+
+=== DC SHUNT MOTORS
+
+===== ELECTRICAL DIAGRAM OF A SHUNT MOTOR
+
+The shunt motor is different from the series motor in that the field winding is connected in parallel with the armature instead of in series. Since the field winding is placed in parallel with the armature, it is called a shunt winding and the motor is called a shunt motor. Figure 12-1 shows a diagram of a shunt motor. Notice that the field terminals are marked Fl and F2, and the armature terminals are marked Al and A2.
+
+image::images/Image-230716-085129.114.png[]
+
+The shunt winding is made of small-gauge wire with many turns on the coil. Since the wire is so small, the coil can have thousands of turns and still fit in the slots. The small-gauge wire cannot handle as much current as the heavy-gauge wire in the series field, but since this coil has many more turns of wire, it can still produce a very strong magnetic field.
+
+image::images/Image-230716-085152.733.png[]
+**Diagram of DC shunt motor**
+
+=== SHUNT MOTOR OPERATION
+A shunt motor has slightly different operating characteristics than a series motor. Since the shunt field coil is made of fine wire, it cannot produce the large current for starting like the series field. This means that the shunt motor has very low starting torque, which requires that the shaft load be rather small.
+
+When voltage is applied to the motor, the high resistance of the shunt coil keeps the overall current flow low. The armature for the shunt motor is similar to the series motor and it will draw current to produce a magnetic field strong enough to cause the armature shaft and load to start turning. Like the series motor, when the armature begins to turn, it will produce back EMF. The back EMF will cause the current in the armature to begin to diminish to a very small level. The amount of current the armature will draw is directly related to the size of the load when the motor reaches full speed. Since the load is generally small, the armature current will be small. When the motor reaches full RPM, its speed will remain fairly constant.
+
+==== CONTROLLING THE SPEED
+When the shunt motor reaches full RPM, its speed will remain fairly constant. The reason the speed remains constant is due to the load characteristics of the armature and shunt coil. The speed of a series motor could not be controlled since it was totally dependent on the size of the load in comparison to the size of the motor. If the load was very large for the motor size, the speed of the armature would be very slow. If the load was light compared to the motor, the armature shaft speed would be much faster, and if no load was present on the shaft, the motor could run away.
+ 
+The shunt motor's speed can be controlled. The ability of the motor is to maintain **a set RPM** at high speed, where the load changes are due to the characteristics of the shunt field and armature. Since the armature begins to produce back EMF as soon as it starts to rotate, it will use the back EMF to maintain its RPM at high speed. If the load increases slightly and causes the armature shaft to slow down, less back EMF will be produced. This will allow the difference between the back EMF and applied voltage to become larger, which will cause more current to flow. The extra current provides the motor with the extra torque required to regain its RPM when this load is increased slightly.
+ 
+The shunt motor's speed can be varied in two different ways. These include varying the amount of current supplied to the shunt field and controlling the amount of current supplied to the armature. Controlling the current to the shunt field allows the RPM to be changed 10-20% when the motor is at full RPM.
+ 
+This type of speed control regulation is accomplished by slightly increasing or decreasing the voltage applied to the field. The armature continues to have full voltage applied to it while the current to the shunt field is regulated by a rheostat that is connected in series with the shunt field. When the shunt field's current is decreased, the motor's RPM will increase slightly. When the shunt field's current is reduced, the armature must rotate faster to produce the same amount of back EMF to keep the load turning.
+
+The shunt motor's RPM can also be controlled by regulating the voltage that is applied to the motor armature. This means that if the motor is operated on less voltage than is shown on its data plate rating, it will run at less than full RPM. The shunt motor's efficiency will drop off drastically when it is operated below its rated voltage. The motor will tend to overheat when it is operated below full voltage, so motor ventilation must be provided. The motor's torque is reduced when it is operated below the full voltage level.
+
+=== TORQUE CHARACTERISTICS
+The armature's torque increases as the motor gains speed due to the fact that the shunt motor's torque is directly proportional to the armature current. When the motor is starting and speed is very low, the motor has very little torque. After the motor reaches full RPM, its torque is at its fullest potential. This type of automatic control makes the shunt motor a good choice for applications where **constant speed is required**, even though the torque will vary slightly due to changes in the load. The speed of the shunt motor stays fairly constant throughout its load range and drops slightly when it is drawing the largest current.
+
+image::images/Image-230716-085432.788.png[]
+
+==== REVERSING THE ROTATION
+The direction of rotation of a DC shunt motor can be reversed by changing the polarity of either the armature coil or the field coil. In this application the armature coil is usually changed, as was the case with the series motor. Figure 12-4 shows the electrical diagram of a DC shunt motor connected to a forward and reversing motor starter. The Fl and F2 terminals of the shunt field are connected directly to the power supply, and the Al and A2 terminals of the armature winding are connected to the reversing starter.
+
+image::images/Image-230716-085442.408.png[]
+
+**Diagram of a shunt motor connected to a reversing motor starter. Notice that the shunt field is connected across the armature and it is not reversed when the armature is reversed.**
+
+When the FMS is energized, its contacts connect the Al lead to the positive power supply terminal and the A2 lead to the negative power supply terminal. The Fl motor lead is connected directly to the positive terminal of the power supply and the F2 lead is connected to the negative terminal. When the motor is wired in this configuration, it will begin to run in the forward direction.
+
+When the RMS is energized, its contacts reverse the armature wires so that the Al lead is connected to the negative power supply terminal and the A2 lead is connected to the positive power supply terminal. The field leads are connected directly to the power supply, so their polarity is not changed. Since the field's polarity has remained the same and the armature's polarity has reversed, the motor will begin to rotate in the reverse direction. The control part of the diagram shows that when the FMS coil is energized, the RMS coil is locked out. 
+
+==== ADVANTAGES OF SHUNT MOTOR
+. Low Power Consumption
+. Light in weight
+. Better torque control
+. Current rating is lesser
+
+image::images/Image-230716-085600.258.png[]
+
+**RATING**
+
+|====
+| **VOLTAGE** | 5 -12 V
+| **CURRENT** | 500 MA
+| **TYPE** | SHUNT
+|====
+
+Integrated circuits are commonly employed in conjunction with stabilized DC power supplies. Regulators are invariably of the three terminal type and may be either fixed or variable voltage types.
+
+Most regulators incorporate current limiting and thermal shutdown. Various fixed voltage regulators are7805, 7905, 7809, 7909, 7812, 7912, 7815, 7915, 7824, 7924 etc.,
+
+Here are 7 output voltage options such as 5, 6, 8, 12, 15, 18 and 24 volts. In 78xx, the last two members (xx) indicate the output voltage. Thus 7805 represents 5V regulator.
+
+The regulators are available in two types of packages. They are:
+
+. Metal Package
+. Plastic Package
+ 
+The three characteristics of three terminal regulators are:
+
+. **LOAD REGULATION**
+It is the change in output voltage for a change in the load current.
+. **LINE REGULATION**
+It is the percentage change in the output voltage for a change in the input voltage.
+. **RIPPLE REJECTION**
+The IC regulator reduces the ripple voltage also.
+ 
+In the vast majority of applications, voltage regulators will operate at significant power levels. It is essential to provide adequate heat sinking (following the manufacturer’s recommendation). Failure to observe this precaution may result in premature current limiting or output voltage fold back due to thermal shutdown.
+ 
+==Chapter 4: Schematic Designs
+
+===== POWER SUPPLY CIRCUIT USING IC 7805
+
+image::images/Image-230716-085914.339.png[]
+
+The power for this circuit is taken from a 9V DC supply and connected into 5V stabilized DC using IC 7805. The output of 7805 is connected to “power on” LED and a capacitor to smoothen the supply voltage. IC 7805 3-pin voltage regulator was selected for this circuit because of its versatility. It is short circuit proof, can accept input voltage up to 24V DC with a minimum of 9V input and can supply 1 Amp of current with a heat sink if required. It also has reverse voltage protection and almost impossible to destroy electrically. It looks like a small transistor and is capable of providing upto 100 mA of maximum current. This can be used when the total current required by the circuit less than 100 mA. 
+
+Voltage regulators have considerable internal gain and thus, to ensure unconditional high frequency stability, it is recommended that relatively low value (e.g. 100 nF) capacitors be fitted( from input to ground and from output to ground) as close as possible to the device.
+
+Care should be taken to ensure that the (unregulated) DC input voltage is within the range specified by the manufacturing (e.g. +7V to +25V max for a 7805). Where the input voltage is very much higher than the output voltage, power dissipation within the regulator may be excessive.
+
+==== SPEAKER AMPLIFIER CIRCUIT
+
+image::images/Image-230716-090026.668.png[]
+
+. This circuit is used to amplify the weak signal (tone generated) from the speaker of the mobile phone. 
+. Since the signal obtained consists of noise it is imperative to amplify the signal to get the key tone generated accurately for decoding. 
+. The key tone generated is obtained by the speaker of the mobile phone.
+. It is received by the microphone which is placed just above the mobile phone.
+. The two ends of the microphone are connected between ground and the amplifier circuit.
+. This circuit makes use of a 358 OP-AMP for amplification.
+. The positive input terminal is connected to a bridge circuit of 10K resistors to compensate for the noise factor.
+. The feedback circuit is provided by a variable MEG resistor POT.
+. This POT resistor is used to select a value for the resistance of the Feedback circuit in accordance with the noise is the receiving terminal.
+. Thus the sensitivity is varied using the POT which gives a wide range of control of the vehicle in all kinds of environment. 
+
+=== DTMF DECODER CIRCUIT DESIGN
+
+image::images/Image-230716-090250.139.png[]
+
+==== WORKING OF TONE DECODER CIRCUIT
+
+. The tone out from the amplifier circuit is given to Pin 2 of IC8870, the DTMF Receiver IC – Pin 2 being the input pin.
+. A crystal oscillator of frequency 3.57 MHz is connected across Pins 7 and 8 to provide the time base circuit.
+. The DTMF tones must be valid for a specified duration in order to be received by the DTMF receiver and decoded in order to enable conversion to equivalent BCD output.
+. Resistors R14, R15, R16 and R17 (refer circuit) are called ‘pull-down’ resistors. 
+. These resistors are grounded for the following reason – IC8870 has ‘tri-state’ logic, i.e., it has three operating states, HIGH, LOW and FLOATING. 
+. In the event that IC8870 is in the floating state, this floating output of 8870 will be given to the flip-flops, causing them to oscillate. 
+. Since, this is undesirable, the ‘pull-down’ resistors are used to prevent oscillation.
+. The binary input at Pin 2 is converted into 4-bit BCD outputs, which are taken from Pins 11, 12, 13 and 14. 
+. Output at Pin 11 is the LSB and that at Pin 14 is the MSB.
+. The output from the four pins is given to the microcontroller circuit through IC4049 buffer circuits.
+. The output from the pin 14 & 15 are given to a LED to determine the DATA READY signal.
+. In case of testing, four test switches are also provided in order to test the DTMF Receiver circuit.
+
+=== MICROCONTROLLER CIRCUIT
+
+image::images/Image-230716-090412.522.png[]
+
+==== WORKING OF MICROCONTROLLER CIRCUIT
+
+. The circuit uses IC7805 for a stabilized 5v dc supply with a ripple smoothening capacitor C1. 
+. Input to the circuit is 12v dc. 
+. A power ON indicator LED D1 is used with a current limiting resistor R1.
+. The circuit has two 10K resistor packs to act as “pull-up” resistors.
+. Port-2(Green) is used as the Input Port which gets the input from the DTMF Receiver circuit.
+. Port-0(Red) is used as the Output Port which is connected to the Driver circuit.
+. Port-1(Yellow) is connected to a LED display and acts as an Output Port.
+. The output of the DTMF receiver A, B, C and D are given to Port-2 at the pins P20, P21, P22 and P23.
+. The output of DTMF receiver at pins 10 & 15 (Data Ready) is given to Port-2 at pin P24.
+. The output Port-1, which is connected to a LED displays the DTMF code received by the microcontroller.
+. These inputs are manipulated according to the microcontroller program and then the output Port-0 is connected to the Driver circuit with pins P00, P01, P02 and P03 with the driving and steering circuits.
+. A reset switch is given which is connected to pin 9 of the microcontroller.
+. The PCB is fabricated with four 8-way PCB connectors to facilitate further improvements.
+
+=== DRIVER CIRCUIT DESIGN
+
+image::images/Image-230716-090523.551.png[]
+
+===== WORKING OF DRIVER CIRCUIT
+. The driver circuit acts as the interface between the static medium and mechanical medium.
+. The driver circuit holds the buffer IC’s, display devices and the data transfer from the microcontroller to the driving and steering circuits.
+. In order to connect the Input Port-2 of the microcontroller to the DTMF receiver, IC 74HCT573 is used and is also connected to a LED display to determine the four bit input data transferred.
+. The Output Port-0 which is connected to the driving and steering circuits is needed to transfer only two bit data to each circuit.
+. The two bit data from the pins P0.0 and P0.1 are given to the DC motor main drive which is responsible for the forward and reverse direction.
+. The pins P0.0 and P0.1 are used to give the values for LEFT and RIGHT for the DC motor driving circuit.
+. The two bit data from the pins P0.2 and P0.3 are given to the DC motor steering drive which is responsible for left and right steering movements.
+. The pins P0.2and P0.3 are used to give the values for RUN and DIRECTION for the DC motor steering circuit.
+. This four bit data is given by the Output Port-0 to the motor driving and steering circuits through another IC 74HCT573 buffer 
+. This buffer IC is also provided with a LED display for the output port.
+. The two LED displays are provided with 1K “pull-down” resistors
+. The other four pins of the Port-0 are left to facilitate further developments.
 
 
+=== DC MOTOR DRIVE CIRCUIT
+
+image::images/Image-230716-090609.177.png[]
+
+===== WORKING OF MOTOR-DRIVE CIRCUIT
+. The circuit uses 7805 for a stabilized 5v dc supply with a ripple smoothening capacitor C1. 
+. Input to the circuit is 12v dc. 
+. A power ON indicator led D1 is used with a current limiting resistor R1. 
+. The circuit has two logic inputs marked as RUN and DIRECTION. 
+. A dc motor rated at 5v is connected using two 12volt relays for direction change and another relay is used to supply power to the motor.
+.  When the DIR relay (k1 12v) is ON power supply (5v) goes to the DC motor where the direction is in one way. 
+. When the DIR relay and relays K2 K3 are energized the motor runs in the other way because of the connection change in polarity. 
+. If only the DIR relay is energized - the motor does not rotate because the supply is cut off by relay K1.
+. Relay energizing indicator is also provided through an LED & back emf diodes (1N4148) are placed across relay coils. 
+. As shown in schematic two logic input connectors are provided through two way cables into the PCB. 
+. Two non inverting buffers ic4050 are used with pull down resistors (100k) to keep the logic low. 
+. When testing without the sensors two test switches are also provided to simulate the input action, the output of 4050 is used to bias the transistors. 
+. No bias resistor is used, since the ic4050 has built in 330  resistors as per CMOS logic gate standards.
+
+=== DC MOTOR STEERING CIRCUIT
+
+image::images/Image-230716-090659.371.png[]
+
+===== WORKING OF STEERING-4 CIRCUIT
+
+. The circuit uses 7805 for a stabilized 5v dc supply with a ripple smoothening capacitor C1 with input to the circuit being 12v dc.
+. A power ON indicator led D1 is used with a current limiting resistor R1. 
+. The steering mechanism has a built in dc motor rated at 5v, which consumes approximately 100mA current. 
+. When the motor is rotated in one direction for one second the steering mechanism moves 2 wheels in one angle.
+. If the polarity is reversed to the motor the wheels move in other direction. 
+. The motor has a gear/ clutch mechanism built in. So, even if the power is given for greater than one second the clutch slips& does damage the motor. 
+. To operate this dc motor we require 2 SPDT relays, which can supply power of either polarity of dc motor. 
+. When any one of them is energized see (relay K1 & K2) (in schematic) R3 & D4 (bicolor LED) one placed across the motor to indicate red/ green to show the clockwise/anticlockwise rotation.
+. Since the 2 relays provide opposite polarity voltage to the steering motor only one relay at a time should be energized. 
+. When both the relays are ON or OFF, no power is supplied to the motor. Relay energizing indicator is also provided through an LED & back emf diodes (1N4148) are placed across relay coils. 
+. As shown in schematic, left & right logic input connectors are used which can be connected through two way cables into the PCB. 
+. Two non-inverting buffers ic4050 are used with pull down resistors (100k) to keep the logic low. 
+. When testing without the sensors two test switches are also provided to simulate the sensor action, the output of 4050 is used to bias the transistors. 
+. No bias resistor is used, since the IC4050 has built in 330 ohms resistors as per CMOS logic gate standards.
 
 
+=== DATA FLOW DIAGRAM
 
+image::images/Image-230716-090738.662.png[]
+
+===== DATA FLOW DIAGRAM- EXPLAINATION
+
+. The ROBOTIC VEHICLE is fitted with a mobile phone and another hand-held mobile phone is used as the remoter control.
+. A call is made to the mobile on the robot and picked up manually. 
+. The pre-defined keys pressed generate the DTMF tones which are received by the mobile in the robotic vehicle.
+. The key tones generated are heard in the ear-piece of the vehicular mobile.
+. A microphone is placed which acoustically detects the tones generated in the earphone of the mobile.
+. The received key-tones are amplified by the 358 Amplifier.
+. Then the amplified signal tones are sent to the tone decoder circuit.
+. The tone out from the amplifier circuit is given to Pin 2 of IC8870, the DTMF Receiver where Pin 2 is the tone input pin.
+. The DTMF tones must be valid for a specified duration in order to be received by the DTMF receiver and decoded in order to enable conversion to its equivalent 4-bit BCD output.
+. The binary input at Pin 2 is converted into their BCD outputs, which are taken from Pins 11, 12, 13 and 14 of the DTMF Receiver. 
+. The DATA READY signal from pins 14 & 15 are also given to the microcontroller in the input port at P24. 
+. The output of the DTMF receiver A, B, C and D are given to Port-2 at the pins P20, P21, P22 and P23 of the microcontroller.
+. The output Port-1, which is connected to a LED displays the DTMF code received by the microcontroller.
+. These inputs are processed by the microcontroller program and outputs are determined and given through the output port.
+. The output port (Port-0) is connected to the Driver circuit with pins P00, P01, P02 and P03 with the driving and steering circuits.
+. The microcontroller sends appropriate signals to the MOTOR AND STEERING DRIVES (robotic motion controls) through the driver circuit
+. The DRIVER CIRCUIT acts as the interface between the static medium and mechanical medium.
+. The two bit data from the pins P0.0 and P0.1 are given to the DC motor main drive which is responsible for the forward and reverse direction.
+. These are used to give the values for LEFT and RIGHT for the DC motor driving circuit.
+. The two bit data from the pins P0.2 and P0.3 are given to the DC motor steering drive which is responsible for left and right steering movements.
+. These are used to give the values for RUN and DIRECTION for the DC motor steering circuit.
+. Thus the navigation of the robotic vehicle is performed.
+. Keys assigned for control are 
+
+|====
+| **1** | **3** | **2** | **8** | **4** | **6**
+| START | STOP | FORWARD | REVERSE | LEFT | RIGHT
+|====
+
+. The micro controller is programmed for auto-surveillance and manual maneuvers, using the keys ‘*’ and ‘#’.
+. A mini wireless camera can be placed in front of the vehicle, to transmit continuous video and/or audio.
+. It is received by any small TV kept near the remote mobile to help in navigating the mobile when it is not within visible range.
+
+
+==== MICROCONTROLLER PROGRAM
+
+image::images/Image-230716-091225.552.png[]
+
+image::images/Image-230716-091250.504.png[]
+
+image::images/Image-230716-091353.482.png[]
+
+
+==== LIVE DEMONSTRATION – FEATURES
+
+In order to demonstrate the application of this project a working model of approximately 12” long and 6”high is made. A simple prototype of the proposed mobile-controlled robotic vehicle is constructed and fitted with the following components:
+
+. VEHICLUAR MOBILE PHONE
+. CARBON MICROPHONE
+. IC-358 AMPLIFIER
+. IC-78xx VOLTAGE REGULATOR
+. IC-8870 DTMF DECODER CIRCUIT 
+. 89s8252 MICROCONTROLLER CIRCUIT
+. DRIVER & BUFFER CIRCUIT 
+. DC MOTOR MAIN DRIVE CIRCUIT
+. DC MOTOR STEERING DRIVE CIRCUIT
+
+In order to navigate the robotic vehicle a mini wireless camera is placed in the vehicle. This camera provides a continuous feed to a small TV which is set near the hand-held mobile, which acts as the remote control for the robotic vehicle.
+This prototype can have a wide range of applications for domestic surveillance to military warfare needs. In case of self-destruction purposes, key ’0’ can be used when used in military warfare. For domestic purposes, it can be utilized for local surveillance and for visual transmission of local scenario in the required localities in factories and in offices. 
+The power supply required for the circuit was 12V. Hence a regulated power supply circuit to supply 12V is designed with IC7812 for this purpose.
+
+
+==== MOBILE ROBOT LEGEND
+
+image::images/Image-230716-091509.942.png[]
+
+=== FUTURISTIC DEVELOPMENTS
+
+. This project mainly concentrates on its application in military and other surveillance needs. It may be developed for further applications like fire detection, underground mine detection etc.,
+. It can be further improved by enabling the user to close doors, windows or trip circuits on detecting a breach in security during surveillance.
+. For surveillance it can also programmed to trip alarms automatically when sensing a change in environment (using a temperature sensor) and also can be used to control devices according to the need of the user.
+. It can also be improved for providing a secure line by using a multi-key password.
+. In this project the call is manually picked-up. However it can be programmed to auto- pick the call and detect the correct user.
+. Now with the advent CDMA and latest mobile phones, the mobile phone can be designed to send the video feed directly to the WAP enabled mobile phone.
+. The commands can be converted to a voice-detection scheme where instead of keystrokes voice commands can be used to control the device.
+. The application of this project can be extended far and wide from huge industries to museums to domestic surveillance.
+. In huge industries it does not require high power, technically equipped people and visible range to operate it.
+. It can also be programmed to auto-dial pre-defined numbers if there had been a security breach either to the user and/or the nearest security personnel.
+
+
+==== References
+. **ELECTRONIC INSTRUMENTATION** - By H.S.Kalsi, Tata McGraw-Hill Publishing Limited, New Delhi
+. **EMBEDDED SYSTEMS DESIGN USING 8051** - By Romania Kalpathi & Ganesh Raja, Srimagal Publications
+. **PRINCIPLES OF ELECTRICAL ENGINEERING** - By B.R.Gupta, S.Chand & Company LTD
+. **How Cell Phones Work - by Marshall Brain and Jeff Tyson**
+http://electronics.howstuffworks.com/cellphones.htm
+. **How do microphones work, and why are there so many different types?**
+http://electronics.howstuffworks.com/question309.htm
+. **DTMF RECIEVER**
+.. www.chipdocs.com/pndecoder/datasheets/CPCLA/M-8870-01SMTR.html
+.. www.mastertronics.com.br/datasheets/M8880.pdf
+.. http://engineering.trapeka.com/electronics/circuits/telephone/t1.html
+. **MICROCONTROLLER**
+.. http://www.atmel.com/products/8051/
+.. www.8052.com
+.. www.sunequipco.com/Microprocessor/MTS-8052.HTM
+. **DC MOTORS**
+.. www.dcmotorsinc.com 
+.. www.howstuffworks.com/motor.htm
+.. www.dc-motors.net
