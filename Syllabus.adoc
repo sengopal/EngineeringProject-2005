@@ -1,0 +1,73 @@
+== Syllabus
+The courses covered as part of the Engineering degree are listed below
+
+=== 2001-2002
+. English Language
+. Mathematics I 
+. Applied Physics
+. Applied Chemistry 
+. Basic Mechanical Engineering
+. Basic Electronics Engineering
+. Engineering Drawing and Graphics I
+. English Language II
+. Mathematics II
+. Applied Physics II
+. Applied Chemistry II
+. Basic Civil Engineering
+. Basic Electrical Engineering
+. Engineering Drawing and Graphics I
+. Physics and Chemistry Lab
+. Computer Science Lab
+. Workshop
+
+=== 2002-2003
+. Applied Mathematics
+. Mechanics of Solids
+. Electron Devices
+. Fluid Mechanics and Machinery
+. Electrical Machines I
+. Computer Programming in Unix and C
+. Circuit Theory
+. Circuits and Devices Lab
+. Computer Programming in Unix and C Lab
+. Higher Mathematics
+. Thermal Engineering
+. Field Theory
+. Electronic Circuits
+. Electrical Network Analysis and Synthesis
+. Electrical Machines II
+. Object-Oriented Programming in C++ 
+. Object Oriented Programming and Mechanical Engineering Lab 
+. Electrical Machines Lab 
+
+=== 2003-2004  
+. Applied Numerical Methods 
+. Control Systems 
+. Linear Integrated Circuits 
+. Digital Electronics and Computer Architecture 
+. Electrical Machine Design 
+. Transmission and Distribution 
+. Electrical and Electronic Measurements 
+. Linear and Digital Integrated Circuits Lab 
+. Electrical Machines Lab 
+. Power Electronics 
+. Power System Analysis 
+. Instrumentation Systems 
+. Microprocessors and their Applications
+. Principles of Management and Organizational behavior 
+. Fuzzy Systems and Neural Networks 
+. Static Relays 
+. Control and Electrical and Electronic Measurements Lab 
+. Microprocessors Lab
+
+=== 2004-2005
+. Advanced Control Theory 
+. Utilization of Electrical Energy 
+. Power Generation Systems 
+. High Voltage Engineering 
+. Power Systems Protection and Switchgear 
+. Biomedical Instrumentation 
+. Non-Conventional Energy Sources 
+. Power Electronics Lab 
+. Power Systems Lab using PC 
+. Project 
